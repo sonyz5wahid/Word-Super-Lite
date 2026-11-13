@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.text.Spannable;
 import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.graphics.Typeface;
 import android.graphics.Color;
 import android.view.Gravity;
@@ -122,9 +123,7 @@ public class MainActivity extends Activity {
         addAction(ribbon, "U", new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this,
-                        "Underline: tahap berikutnya",
-                        Toast.LENGTH_SHORT).show();
+                applyUnderline();
             }
         });
 
@@ -406,6 +405,30 @@ public class MainActivity extends Activity {
         );
     }
 
+    private void applyUnderline() {
+        int start = Math.min(editor.getSelectionStart(), editor.getSelectionEnd());
+        int end = Math.max(editor.getSelectionStart(), editor.getSelectionEnd());
+        if (start == end) {
+            Toast.makeText(this, "Pilih teks yang akan digarisbawahi.",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        android.text.Editable editable = editor.getText();
+        UnderlineSpan[] spans = editable.getSpans(start, end, UnderlineSpan.class);
+        boolean alreadyUnderlined = false;
+        for (UnderlineSpan span : spans) {
+            if (editable.getSpanStart(span) <= start && editable.getSpanEnd(span) >= end) {
+                alreadyUnderlined = true;
+                editable.removeSpan(span);
+                break;
+            }
+        }
+        if (!alreadyUnderlined) {
+            editable.setSpan(new UnderlineSpan(), start, end,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
     private void changeSize(int delta) {
 
         float size = editor.getTextSize() /
@@ -543,10 +566,7 @@ public class MainActivity extends Activity {
             FileOutputStream stream = new FileOutputStream(output);
 
             try {
-                DocxStore.writeText(
-                        stream,
-                        editor.getText().toString()
-                );
+                DocxStore.writeStyledText(stream, editor.getText());
             } finally {
                 stream.close();
             }
@@ -584,7 +604,7 @@ public class MainActivity extends Activity {
 
             if (requestCode == PICK_OPEN) {
 
-                String text = DocxStore.readText(
+                CharSequence text = DocxStore.readStyledText(
                         getContentResolver().openInputStream(uri)
                 );
 
@@ -611,10 +631,7 @@ public class MainActivity extends Activity {
                 }
 
                 try {
-                    DocxStore.writeText(
-                            output,
-                            editor.getText().toString()
-                    );
+                    DocxStore.writeStyledText(output, editor.getText());
                 } finally {
                     output.close();
                 }
